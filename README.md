@@ -20,6 +20,7 @@ A backend API that enables users to reserve limited-stock products during flash 
 - ✅ Cancel reservations before expiry
 - ✅ Real-time product status (total/reserved/available stock)
 - ✅ Concurrency-safe reservation system
+- ✅ Bulk reserve multiple SKUs with transaction rollback
 - ✅ Input validation on all endpoints
 - ✅ Rate limiting for abuse prevention
 - ✅ Error handling and logging
@@ -151,16 +152,45 @@ The reservation system uses Redis with atomic operations to prevent overselling:
 
 1. **Stock Tracking**: Each product's current stock is stored in Redis (`stock:{product_id}`)
 
-2. **Reservation Keys**: User reservations are stored with TTL (`reservation:{product_id}:{user_id}`)
+2. **Total Reserved Counter**: A global counter tracks ALL reservations across users (`reserved:{product_id}`)
 
-3. **Atomic Operations**: Redis Lua scripts ensure thread-safe reservation logic:
+3. **User Reservation Keys**: Individual user reservations are stored with TTL (`reservation:{product_id}:{user_id}`)
+
+4. **Atomic Lua Script**: The reservation logic uses a Lua script executed atomically by Redis:
    ```lua
-   -- Check available stock
-   -- Update reservation count
-   -- Set expiration (10 minutes)
+   -- Get current stock and total reserved (across ALL users)
+   local currentStock = tonumber(redis.call('GET', stockKey) or 0)
+   local totalReserved = tonumber(redis.call('GET', totalReservedKey) or 0)
+
+   -- Calculate available stock based on TOTAL reserved (not just this user's)
+   local availableStock = currentStock - totalReserved
+   if availableStock < quantity then
+     return {0, "Insufficient stock"}
+   end
+
+   -- Atomically update both global counter and user reservation
+   redis.call('INCRBY', totalReservedKey, quantity)
+   redis.call('INCRBY', reservationKey, quantity)
+   redis.call('EXPIRE', reservationKey, ttl)
    ```
 
-4. **Concurrent Safety**: Multiple users can reserve simultaneously without race conditions
+5. **Concurrent Safety**: Multiple users can reserve simultaneously without race conditions. The global reserved counter ensures collective reservations never exceed stock.
+
+### How It Prevents Collective Overselling
+
+```
+Stock = 3 units
+
+User A reserves 2:
+  - totalReserved = 0, available = 3 - 0 = 3
+  - 3 >= 2 ✓ → totalReserved becomes 2
+
+User B reserves 2:
+  - totalReserved = 2, available = 3 - 2 = 1
+  - 1 >= 2 ✗ → REJECTED (Insufficient stock)
+
+Result: No overselling!
+```
 
 ## Expiration Process
 
@@ -205,12 +235,18 @@ All API responses follow this structure:
 
 ## Testing with Postman
 
-Import the Postman collection to test the API endpoints:
+You can test the API endpoints using either the local Postman collection or the public workspace:
+
+### Option 1: Local Collection
 
 1. Open Postman
 2. Click **Import**
 3. Select the [`postman/flash-sale-api.json`](postman/flash-sale-api.json) file
 4. Update the `baseUrl` variable if needed
+
+### Option 2: Public Postman Workspace
+
+Use the public collection directly: [Flash Sale Reservation API](https://www.postman.com/haris-naeem/workspace/flash-sale-reservation)
 
 ## Contributing
 
