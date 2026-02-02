@@ -20,17 +20,6 @@ export class ProductModel {
     return result.rows[0] || null;
   }
 
-  static async updateStock(id: string, newStock: number): Promise<Product | null> {
-    const query = `
-      UPDATE products 
-      SET total_stock = $2 
-      WHERE id = $1 
-      RETURNING *
-    `;
-    const result = await pool.query(query, [id, newStock]);
-    return result.rows[0] || null;
-  }
-
   static async decreaseStock(id: string, quantity: number): Promise<Product | null> {
     const query = `
       UPDATE products 
@@ -40,11 +29,5 @@ export class ProductModel {
     `;
     const result = await pool.query(query, [id, quantity]);
     return result.rows[0] || null;
-  }
-
-  static async getAll(): Promise<Product[]> {
-    const query = 'SELECT * FROM products ORDER BY created_at DESC';
-    const result = await pool.query(query);
-    return result.rows;
   }
 }

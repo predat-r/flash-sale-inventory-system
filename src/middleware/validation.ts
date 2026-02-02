@@ -5,12 +5,6 @@ import { ApiResponse } from '../types';
 // UUID regex pattern
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const isValidId = (value: string | number): boolean => {
-  if (typeof value === 'number') {
-    return Number.isInteger(value) && value > 0;
-  }
-  return uuidPattern.test(value.toString());
-};
 
 export const validateCreateProduct = (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({

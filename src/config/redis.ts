@@ -6,7 +6,7 @@ class RedisClient {
 
   constructor() {
     const url = new URL(config.redis.url);
-    const password = url.password || config.redis.token;
+    const password = url.password || '';
     this.client = new Redis({
       host: url.hostname,
       port: parseInt(url.port) || 6379,
@@ -32,11 +32,6 @@ class RedisClient {
     return this.client;
   }
 
-  public async setWithTTL(key: string, value: string, ttlSeconds?: number): Promise<void> {
-    const ttl = ttlSeconds || config.redis.ttl;
-    await this.client.setex(key, ttl, value);
-  }
-
   public async get(key: string): Promise<string | null> {
     return this.client.get(key);
   }
@@ -49,24 +44,8 @@ class RedisClient {
     return this.client.exists(key);
   }
 
-  public async incr(key: string): Promise<number> {
-    return this.client.incr(key);
-  }
-
-  public async incrBy(key: string, increment: number): Promise<number> {
-    return this.client.incrby(key, increment);
-  }
-
-  public async decr(key: string): Promise<number> {
-    return this.client.decr(key);
-  }
-
   public async decrBy(key: string, decrement: number): Promise<number> {
     return this.client.decrby(key, decrement);
-  }
-
-  public async expire(key: string, ttlSeconds: number): Promise<number> {
-    return this.client.expire(key, ttlSeconds);
   }
 
   public async ttl(key: string): Promise<number> {
@@ -75,6 +54,10 @@ class RedisClient {
 
   public async keys(pattern: string): Promise<string[]> {
     return this.client.keys(pattern);
+  }
+
+  public async mget(keys: string[]): Promise<(string | null)[]> {
+    return this.client.mget(keys);
   }
 
   public async close(): Promise<void> {
