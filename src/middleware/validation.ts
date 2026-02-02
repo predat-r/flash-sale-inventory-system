@@ -98,7 +98,7 @@ export const validateProductId = (req: Request, res: Response, next: NextFunctio
 
 export const validateUserId = (req: Request, res: Response, next: NextFunction) => {
   const schema = Joi.object({
-    userId: Joi.string().required().min(1).max(255),
+    userId: Joi.string().required(),
   });
 
   const { error } = schema.validate(req.params);

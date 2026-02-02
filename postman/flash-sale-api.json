@@ -17,7 +17,7 @@
     },
     {
       "key": "productId",
-      "value": "",
+      "value": "1",
       "type": "string",
       "description": "Set this after creating a product"
     }
