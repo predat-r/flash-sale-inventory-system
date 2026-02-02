@@ -11,7 +11,8 @@ export const config = {
   },
   
   redis: {
-    url: process.env.UPSTASH_REDIS_REST_URL!,
+    url: process.env.UPSTASH_REDIS_URL!,
+    password: process.env.UPSTASH_REDIS_PASSWORD!,
     token: process.env.UPSTASH_REDIS_REST_TOKEN!,
     ttl: parseInt(process.env.REDIS_TTL || '600', 10), // 10 minutes default
   },

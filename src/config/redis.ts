@@ -6,11 +6,12 @@ class RedisClient {
 
   constructor() {
     const url = new URL(config.redis.url);
+    const password = url.password || config.redis.token;
     this.client = new Redis({
       host: url.hostname,
-      port: parseInt(url.port) || 6380,
-      password: config.redis.token,
-      tls: {},
+      port: parseInt(url.port) || 6379,
+      password: password || undefined,
+      tls: { servername: url.hostname },
       maxRetriesPerRequest: 3,
     });
 
