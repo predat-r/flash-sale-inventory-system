@@ -77,6 +77,7 @@ export const validateCheckout = (req: Request, res: Response, next: NextFunction
 };
 
 export const validateProductId = (req: Request, res: Response, next: NextFunction) => {
+  console.log('validateProductId params:', req.params);
   const schema = Joi.object({
     productId: Joi.alternatives().try(
       Joi.number().integer().min(1),
@@ -86,6 +87,7 @@ export const validateProductId = (req: Request, res: Response, next: NextFunctio
 
   const { error } = schema.validate(req.params);
   if (error) {
+    console.log('validateProductId error:', error);
     const response: ApiResponse = {
       success: false,
       error: 'Invalid product ID',
@@ -97,12 +99,14 @@ export const validateProductId = (req: Request, res: Response, next: NextFunctio
 };
 
 export const validateUserId = (req: Request, res: Response, next: NextFunction) => {
+  console.log('validateUserId params:', req.params);
   const schema = Joi.object({
     userId: Joi.string().required(),
   });
 
   const { error } = schema.validate(req.params);
   if (error) {
+    console.log('validateUserId error:', error);
     const response: ApiResponse = {
       success: false,
       error: 'Invalid user ID',
