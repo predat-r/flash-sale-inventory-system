@@ -112,3 +112,29 @@ export const validateUserId = (req: Request, res: Response, next: NextFunction) 
 
   next();
 };
+
+export const validateBulkReserve = (req: Request, res: Response, next: NextFunction) => {
+  const itemSchema = Joi.object({
+    product_id: Joi.alternatives().try(
+      Joi.number().integer().min(1),
+      Joi.string().pattern(uuidPattern)
+    ).required(),
+    quantity: Joi.number().required().integer().min(1),
+  });
+
+  const schema = Joi.object({
+    user_id: Joi.string().required().min(1).max(255),
+    items: Joi.array().required().min(1).items(itemSchema),
+  });
+
+  const { error } = schema.validate(req.body);
+  if (error) {
+    const response: ApiResponse = {
+      success: false,
+      error: error.details[0].message,
+    };
+    return res.status(400).json(response);
+  }
+
+  next();
+};

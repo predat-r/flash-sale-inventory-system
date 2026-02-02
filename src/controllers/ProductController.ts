@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { ProductService } from '../services/ProductService';
-import { ApiResponse, CreateProductRequest, ReserveProductRequest, CheckoutRequest } from '../types';
+import { ApiResponse, CreateProductRequest, ReserveProductRequest, CheckoutRequest, BulkReserveRequest } from '../types';
 
 export class ProductController {
   static async createProduct(req: Request, res: Response) {
@@ -132,6 +132,31 @@ export class ProductController {
       };
       
       res.status(200).json(response);
+    } catch (error) {
+      const response: ApiResponse = {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+      };
+      res.status(400).json(response);
+    }
+  }
+
+  static async bulkReserve(req: Request, res: Response) {
+    try {
+      const { user_id, items }: BulkReserveRequest = req.body;
+      
+      const result = await ProductService.bulkReserve({
+        user_id,
+        items,
+      });
+      
+      const response: ApiResponse = {
+        success: result.success,
+        data: result,
+        message: result.success ? 'Bulk reservation successful' : 'Some reservations failed',
+      };
+      
+      res.status(result.success ? 200 : 400).json(response);
     } catch (error) {
       const response: ApiResponse = {
         success: false,

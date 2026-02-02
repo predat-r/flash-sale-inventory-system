@@ -44,6 +44,23 @@ export interface ReserveProductRequest {
   quantity: number;
 }
 
+export interface BulkReserveItem {
+  product_id: string;
+  quantity: number;
+}
+
+export interface BulkReserveRequest {
+  user_id: string;
+  items: BulkReserveItem[];
+}
+
+export interface BulkReservationResult {
+  success: boolean;
+  reserved: BulkReserveItem[];
+  failed: { product_id: string; reason: string }[];
+}
+
+
 export interface CheckoutRequest {
   user_id: string;
   product_id: string;

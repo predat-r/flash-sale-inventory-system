@@ -3,6 +3,7 @@ import { ProductController } from '../controllers/ProductController';
 import {
   validateCreateProduct,
   validateReserveProduct,
+  validateBulkReserve,
   validateCheckout,
   validateProductId,
   validateUserId,
@@ -21,5 +22,7 @@ router.delete('/reserve/:userId/:productId', validateUserId, validateProductId, 
 router.get('/products/:productId/status', validateProductId, ProductController.getProductStatus);
 
 router.get('/users/:userId/reservations', validateUserId, ProductController.getUserReservations);
+
+router.post('/reserve/bulk', validateBulkReserve, ProductController.bulkReserve);
 
 export default router;

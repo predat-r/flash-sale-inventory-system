@@ -127,6 +127,28 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "Bulk Reserve (Bonus)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"items\": [\n    { \"product_id\": \"{{productId}}\", \"quantity\": 1 },\n    { \"product_id\": \"2\", \"quantity\": 2 }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/reserve/bulk",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "reserve", "bulk"]
+        }
+      },
+      "response": []
     }
   ]
 }

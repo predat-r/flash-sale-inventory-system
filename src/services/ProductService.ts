@@ -1,7 +1,7 @@
 import { redisClient } from '../config/redis';
 import { ProductModel } from '../models/Product';
 import { OrderModel } from '../models/Order';
-import { ProductStatus, Reservation, ReserveProductRequest, CheckoutRequest } from '../types';
+import { ProductStatus, Reservation, ReserveProductRequest, CheckoutRequest, BulkReserveRequest, BulkReservationResult, BulkReserveItem } from '../types';
 
 export class ProductService {
   private static getReservationKey(productId: string, userId: string): string {
@@ -127,6 +127,9 @@ export class ProductService {
       throw new Error(result[1].toString());
     }
 
+    // Sync database stock with Redis (ensure consistency)
+    await ProductModel.decreaseStock(product_id, quantity);
+
     const order = await OrderModel.create({
       user_id,
       product_id,
@@ -197,5 +200,84 @@ export class ProductService {
     }
 
     return reservations;
+  }
+
+  static async bulkReserve(request: BulkReserveRequest): Promise<BulkReservationResult> {
+    const { user_id, items } = request;
+    
+    const client = redisClient.getClient();
+    const reserved: BulkReserveItem[] = [];
+    const failed: { product_id: string; reason: string }[] = [];
+    
+    // Validate all products exist first
+    for (const item of items) {
+      const product = await ProductModel.findById(item.product_id);
+      if (!product) {
+        failed.push({ product_id: item.product_id, reason: 'Product not found' });
+      }
+    }
+    
+    // If any product not found, return early with failures
+    if (failed.length > 0) {
+      return { success: false, reserved: [], failed };
+    }
+    
+    // Try to reserve each item atomically
+    for (const item of items) {
+      const stockKey = this.getProductStockKey(item.product_id);
+      const reservationKey = this.getReservationKey(item.product_id, user_id);
+      
+      try {
+        const result = await client.eval(
+          `
+          local stockKey = KEYS[1]
+          local reservationKey = KEYS[2]
+          local quantity = tonumber(ARGV[1])
+          local ttl = tonumber(ARGV[2])
+          
+          local currentStock = tonumber(redis.call('GET', stockKey) or 0)
+          local existingReservation = tonumber(redis.call('GET', reservationKey) or 0)
+          
+          local availableStock = currentStock - existingReservation
+          if availableStock < quantity then
+            return {0, "Insufficient stock"}
+          end
+          
+          redis.call('INCRBY', reservationKey, quantity)
+          redis.call('EXPIRE', reservationKey, ttl)
+          
+          return {1, "Reservation successful"}
+          `,
+          2,
+          stockKey,
+          reservationKey,
+          item.quantity.toString(),
+          (10 * 60).toString()
+        ) as number[];
+        
+        if (result[0] === 1) {
+          reserved.push({ product_id: item.product_id, quantity: item.quantity });
+        } else {
+          failed.push({ product_id: item.product_id, reason: result[1].toString() });
+        }
+      } catch {
+        failed.push({ product_id: item.product_id, reason: 'Reservation failed' });
+      }
+    }
+    
+    // If any reservation failed, roll back all successful reservations
+    if (failed.length > 0 && reserved.length > 0) {
+      for (const item of reserved) {
+        const reservationKey = this.getReservationKey(item.product_id, user_id);
+        await client.decrby(reservationKey, item.quantity);
+      }
+      return { success: false, reserved: [], failed };
+    }
+    
+    return {
+      success: failed.length === 0,
+      reserved,
+      failed,
+    };
   }
 }

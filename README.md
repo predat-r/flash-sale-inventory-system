@@ -114,6 +114,37 @@ GET /api/products/:productId/status
 GET /api/users/:userId/reservations
 ```
 
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "user_id": "user123",
+      "product_id": "1",
+      "quantity": 2,
+      "expires_at": "2024-01-15T10:10:00.000Z"
+    }
+  ]
+}
+```
+
+### Reserve Multiple Products (Bonus)
+```http
+POST /api/reserve/bulk
+Content-Type: application/json
+
+{
+  "user_id": "user123",
+  "items": [
+    { "product_id": 1, "quantity": 2 },
+    { "product_id": 2, "quantity": 1 }
+  ]
+}
+```
+
+> **Note:** If any item fails, the entire transaction is rolled back.
+
 ## Reservation Lock Logic
 
 The reservation system uses Redis with atomic operations to prevent overselling:
