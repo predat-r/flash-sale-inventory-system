@@ -82,7 +82,7 @@ export class ProductController {
     try {
       const { userId, productId } = req.params;
       
-      await ProductService.cancelReservation(userId as string, parseInt(productId as string, 10));
+      await ProductService.cancelReservation(userId as string, productId as string);
       
       const response: ApiResponse = {
         success: true,
@@ -103,7 +103,7 @@ export class ProductController {
     try {
       const { productId } = req.params;
       
-      const status = await ProductService.getProductStatus(parseInt(productId as string, 10));
+      const status = await ProductService.getProductStatus(productId as string);
       
       const response: ApiResponse = {
         success: true,

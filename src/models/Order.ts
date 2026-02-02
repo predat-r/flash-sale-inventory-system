@@ -14,7 +14,7 @@ export class OrderModel {
     return result.rows[0];
   }
 
-  static async findById(id: number): Promise<Order | null> {
+  static async findById(id: string): Promise<Order | null> {
     const query = 'SELECT * FROM orders WHERE id = $1';
     const result = await pool.query(query, [id]);
     return result.rows[0] || null;
@@ -26,7 +26,7 @@ export class OrderModel {
     return result.rows;
   }
 
-  static async findByProductId(productId: number): Promise<Order[]> {
+  static async findByProductId(productId: string): Promise<Order[]> {
     const query = 'SELECT * FROM orders WHERE product_id = $1 ORDER BY created_at DESC';
     const result = await pool.query(query, [productId]);
     return result.rows;

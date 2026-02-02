@@ -14,13 +14,13 @@ export class ProductModel {
     return result.rows[0];
   }
 
-  static async findById(id: number): Promise<Product | null> {
+  static async findById(id: string): Promise<Product | null> {
     const query = 'SELECT * FROM products WHERE id = $1';
     const result = await pool.query(query, [id]);
     return result.rows[0] || null;
   }
 
-  static async updateStock(id: number, newStock: number): Promise<Product | null> {
+  static async updateStock(id: string, newStock: number): Promise<Product | null> {
     const query = `
       UPDATE products 
       SET total_stock = $2 
@@ -31,7 +31,7 @@ export class ProductModel {
     return result.rows[0] || null;
   }
 
-  static async decreaseStock(id: number, quantity: number): Promise<Product | null> {
+  static async decreaseStock(id: string, quantity: number): Promise<Product | null> {
     const query = `
       UPDATE products 
       SET total_stock = total_stock - $2 

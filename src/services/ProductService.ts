@@ -4,11 +4,11 @@ import { OrderModel } from '../models/Order';
 import { ProductStatus, Reservation, ReserveProductRequest, CheckoutRequest } from '../types';
 
 export class ProductService {
-  private static getReservationKey(productId: number, userId: string): string {
+  private static getReservationKey(productId: string, userId: string): string {
     return `reservation:${productId}:${userId}`;
   }
 
-  private static getProductStockKey(productId: number): string {
+  private static getProductStockKey(productId: string): string {
     return `stock:${productId}`;
   }
 
@@ -81,7 +81,7 @@ export class ProductService {
     };
   }
 
-  static async cancelReservation(userId: string, productId: number): Promise<void> {
+  static async cancelReservation(userId: string, productId: string): Promise<void> {
     const reservationKey = this.getReservationKey(productId, userId);
     
     const exists = await redisClient.exists(reservationKey);
@@ -137,7 +137,7 @@ export class ProductService {
     return order;
   }
 
-  static async getProductStatus(productId: number): Promise<ProductStatus> {
+  static async getProductStatus(productId: string): Promise<ProductStatus> {
     const product = await ProductModel.findById(productId);
     if (!product) {
       throw new Error('Product not found');
@@ -182,7 +182,6 @@ export class ProductService {
 
     for (const key of reservationKeys) {
       const [_, productIdStr, __] = key.split(':');
-      const productId = parseInt(productIdStr, 10);
       
       const quantity = await client.get(key);
       const ttl = await client.ttl(key);
@@ -190,7 +189,7 @@ export class ProductService {
       if (quantity) {
         reservations.push({
           user_id: userId,
-          product_id: productId,
+          product_id: productIdStr,
           quantity: parseInt(quantity, 10),
           expires_at: new Date(Date.now() + ttl * 1000),
         });

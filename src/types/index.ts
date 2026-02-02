@@ -1,5 +1,5 @@
 export interface Product {
-  id: number;
+  id: string;
   name: string;
   description?: string;
   total_stock: number;
@@ -8,9 +8,9 @@ export interface Product {
 }
 
 export interface Order {
-  id: number;
+  id: string;
   user_id: string;
-  product_id: number;
+  product_id: string;
   quantity: number;
   total_amount: number;
   status: 'pending' | 'completed' | 'cancelled';
@@ -19,13 +19,13 @@ export interface Order {
 
 export interface Reservation {
   user_id: string;
-  product_id: number;
+  product_id: string;
   quantity: number;
   expires_at: Date;
 }
 
 export interface ProductStatus {
-  id: number;
+  id: string;
   name: string;
   total_stock: number;
   reserved_stock: number;
@@ -40,13 +40,13 @@ export interface CreateProductRequest {
 
 export interface ReserveProductRequest {
   user_id: string;
-  product_id: number;
+  product_id: string;
   quantity: number;
 }
 
 export interface CheckoutRequest {
   user_id: string;
-  product_id: number;
+  product_id: string;
   quantity: number;
   total_amount: number;
 }
