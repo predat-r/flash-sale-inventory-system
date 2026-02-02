@@ -174,60 +174,12 @@ All API responses follow this structure:
 
 ## Testing with Postman
 
-Import the following collection to test the API endpoints:
+Import the Postman collection to test the API endpoints:
 
-```json
-{
-  "info": {
-    "name": "Flash Sale API",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
-    {
-      "name": "Create Product",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Flash Deal Laptop\",\n  \"description\": \"High-performance laptop with discount\",\n  \"total_stock\": 200\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/products",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "products"]
-        }
-      }
-    },
-    {
-      "name": "Reserve Product",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"user_id\": \"user123\",\n  \"product_id\": 1,\n  \"quantity\": 2\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/api/reserve",
-          "host": ["{{baseUrl}}"],
-          "path": ["api", "reserve"]
-        }
-      }
-    }
-  ]
-}
-```
+1. Open Postman
+2. Click **Import**
+3. Select the [`postman/flash-sale-api.json`](postman/flash-sale-api.json) file
+4. Update the `baseUrl` variable if needed
 
 ## Contributing
 
