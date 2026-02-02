@@ -1,0 +1,83 @@
+import Redis from 'ioredis';
+import { config } from './index';
+
+class RedisClient {
+  private client: Redis;
+
+  constructor() {
+    this.client = new Redis(config.redis.url, {
+      headers: {
+        Authorization: `Bearer ${config.redis.token}`,
+      },
+      retryDelayOnFailover: 100,
+      maxRetriesPerRequest: 3,
+    });
+
+    this.client.on('connect', () => {
+      console.log('Connected to Redis');
+    });
+
+    this.client.on('error', (error) => {
+      console.error('Redis connection error:', error);
+    });
+
+    this.client.on('close', () => {
+      console.log('Redis connection closed');
+    });
+  }
+
+  public getClient(): Redis {
+    return this.client;
+  }
+
+  public async setWithTTL(key: string, value: string, ttlSeconds?: number): Promise<void> {
+    const ttl = ttlSeconds || config.redis.ttl;
+    await this.client.setex(key, ttl, value);
+  }
+
+  public async get(key: string): Promise<string | null> {
+    return this.client.get(key);
+  }
+
+  public async del(key: string): Promise<number> {
+    return this.client.del(key);
+  }
+
+  public async exists(key: string): Promise<number> {
+    return this.client.exists(key);
+  }
+
+  public async incr(key: string): Promise<number> {
+    return this.client.incr(key);
+  }
+
+  public async incrBy(key: string, increment: number): Promise<number> {
+    return this.client.incrby(key, increment);
+  }
+
+  public async decr(key: string): Promise<number> {
+    return this.client.decr(key);
+  }
+
+  public async decrBy(key: string, decrement: number): Promise<number> {
+    return this.client.decrby(key, decrement);
+  }
+
+  public async expire(key: string, ttlSeconds: number): Promise<number> {
+    return this.client.expire(key, ttlSeconds);
+  }
+
+  public async ttl(key: string): Promise<number> {
+    return this.client.ttl(key);
+  }
+
+  public async keys(pattern: string): Promise<string[]> {
+    return this.client.keys(pattern);
+  }
+
+  public async close(): Promise<void> {
+    await this.client.quit();
+  }
+}
+
+export const redisClient = new RedisClient();
