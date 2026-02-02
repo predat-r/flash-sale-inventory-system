@@ -12,6 +12,10 @@ export class ProductService {
     return `stock:${productId}`;
   }
 
+  private static getTotalReservedKey(productId: string): string {
+    return `reserved:${productId}`;
+  }
+
   static async createProduct(name: string, totalStock: number, description?: string) {
     const product = await ProductModel.create({
       name,
@@ -19,10 +23,13 @@ export class ProductService {
       total_stock: totalStock,
     });
 
-    await redisClient.getClient().set(
-      this.getProductStockKey(product.id),
-      totalStock.toString()
-    );
+    const client = redisClient.getClient();
+    
+    // Initialize stock and total reserved counter in Redis
+    await client.mset({
+      [this.getProductStockKey(product.id)]: totalStock.toString(),
+      [this.getTotalReservedKey(product.id)]: '0',
+    });
 
     return product;
   }
@@ -36,32 +43,39 @@ export class ProductService {
     }
 
     const stockKey = this.getProductStockKey(product_id);
+    const totalReservedKey = this.getTotalReservedKey(product_id);
     const reservationKey = this.getReservationKey(product_id, user_id);
 
     const client = redisClient.getClient();
     
+    // ATOMIC LUA SCRIPT with global reserved counter
     const result = await client.eval(
       `
       local stockKey = KEYS[1]
-      local reservationKey = KEYS[2]
+      local totalReservedKey = KEYS[2]
+      local reservationKey = KEYS[3]
       local quantity = tonumber(ARGV[1])
       local ttl = tonumber(ARGV[2])
       
       local currentStock = tonumber(redis.call('GET', stockKey) or 0)
-      local existingReservation = tonumber(redis.call('GET', reservationKey) or 0)
+      local totalReserved = tonumber(redis.call('GET', totalReservedKey) or 0)
       
-      local availableStock = currentStock - existingReservation
+      -- Calculate available stock based on TOTAL reserved (not just this user's)
+      local availableStock = currentStock - totalReserved
       if availableStock < quantity then
-        return {0, "Insufficient stock"}
+        return {0, "Insufficient stock", availableStock}
       end
       
+      -- Atomically update both global reserved counter and user reservation
+      redis.call('INCRBY', totalReservedKey, quantity)
       redis.call('INCRBY', reservationKey, quantity)
       redis.call('EXPIRE', reservationKey, ttl)
       
-      return {1, "Reservation successful"}
+      return {1, "Reservation successful", totalReserved + quantity}
       `,
-      2,
+      3,
       stockKey,
+      totalReservedKey,
       reservationKey,
       quantity.toString(),
       (10 * 60).toString()
@@ -83,27 +97,51 @@ export class ProductService {
 
   static async cancelReservation(userId: string, productId: string): Promise<void> {
     const reservationKey = this.getReservationKey(productId, userId);
+    const totalReservedKey = this.getTotalReservedKey(productId);
     
     const exists = await redisClient.exists(reservationKey);
     if (exists === 0) {
       throw new Error('No reservation found');
     }
 
-    await redisClient.del(reservationKey);
+    const client = redisClient.getClient();
+    
+    // Atomically get user's reservation and decrement global counter
+    await client.eval(
+      `
+      local reservationKey = KEYS[1]
+      local totalReservedKey = KEYS[2]
+      
+      local reservedQty = tonumber(redis.call('GET', reservationKey) or 0)
+      
+      if reservedQty > 0 then
+        redis.call('DECRBY', totalReservedKey, reservedQty)
+      end
+      redis.call('DEL', reservationKey)
+      
+      return 1
+      `,
+      2,
+      reservationKey,
+      totalReservedKey
+    );
   }
 
   static async checkout(checkoutData: CheckoutRequest) {
     const { user_id, product_id, quantity, total_amount } = checkoutData;
     
     const reservationKey = this.getReservationKey(product_id, user_id);
+    const totalReservedKey = this.getTotalReservedKey(product_id);
     const stockKey = this.getProductStockKey(product_id);
 
     const client = redisClient.getClient();
     
+    // ATOMIC CHECKOUT with global reserved counter update
     const result = await client.eval(
       `
       local reservationKey = KEYS[1]
-      local stockKey = KEYS[2]
+      local totalReservedKey = KEYS[2]
+      local stockKey = KEYS[3]
       local quantity = tonumber(ARGV[1])
       
       local reservedQuantity = tonumber(redis.call('GET', reservationKey) or 0)
@@ -112,13 +150,16 @@ export class ProductService {
         return {0, "Insufficient reservation"}
       end
       
+      -- Atomically: reduce stock, remove reservation, decrement global counter
       redis.call('DECRBY', stockKey, quantity)
+      redis.call('DECRBY', totalReservedKey, quantity)
       redis.call('DEL', reservationKey)
       
       return {1, "Checkout successful"}
       `,
-      2,
+      3,
       reservationKey,
+      totalReservedKey,
       stockKey,
       quantity.toString()
     ) as number[];
@@ -225,31 +266,35 @@ export class ProductService {
     // Try to reserve each item atomically
     for (const item of items) {
       const stockKey = this.getProductStockKey(item.product_id);
+      const totalReservedKey = this.getTotalReservedKey(item.product_id);
       const reservationKey = this.getReservationKey(item.product_id, user_id);
       
       try {
         const result = await client.eval(
           `
           local stockKey = KEYS[1]
-          local reservationKey = KEYS[2]
+          local totalReservedKey = KEYS[2]
+          local reservationKey = KEYS[3]
           local quantity = tonumber(ARGV[1])
           local ttl = tonumber(ARGV[2])
           
           local currentStock = tonumber(redis.call('GET', stockKey) or 0)
-          local existingReservation = tonumber(redis.call('GET', reservationKey) or 0)
+          local totalReserved = tonumber(redis.call('GET', totalReservedKey) or 0)
           
-          local availableStock = currentStock - existingReservation
+          local availableStock = currentStock - totalReserved
           if availableStock < quantity then
             return {0, "Insufficient stock"}
           end
           
+          redis.call('INCRBY', totalReservedKey, quantity)
           redis.call('INCRBY', reservationKey, quantity)
           redis.call('EXPIRE', reservationKey, ttl)
           
           return {1, "Reservation successful"}
           `,
-          2,
+          3,
           stockKey,
+          totalReservedKey,
           reservationKey,
           item.quantity.toString(),
           (10 * 60).toString()
@@ -268,8 +313,26 @@ export class ProductService {
     // If any reservation failed, roll back all successful reservations
     if (failed.length > 0 && reserved.length > 0) {
       for (const item of reserved) {
+        const totalReservedKey = this.getTotalReservedKey(item.product_id);
         const reservationKey = this.getReservationKey(item.product_id, user_id);
-        await client.decrby(reservationKey, item.quantity);
+        const client = redisClient.getClient();
+        
+        await client.eval(
+          `
+          local totalReservedKey = KEYS[1]
+          local reservationKey = KEYS[2]
+          local quantity = tonumber(ARGV[1])
+          
+          redis.call('DECRBY', totalReservedKey, quantity)
+          redis.call('DECRBY', reservationKey, quantity)
+          
+          return 1
+          `,
+          2,
+          totalReservedKey,
+          reservationKey,
+          item.quantity.toString()
+        );
       }
       return { success: false, reserved: [], failed };
     }
