@@ -83,7 +83,7 @@ export const validateProductId = (req: Request, res: Response, next: NextFunctio
       Joi.number().integer().min(1),
       Joi.string().pattern(uuidPattern)
     ).required(),
-  });
+  }).unknown(true);
 
   const { error } = schema.validate(req.params);
   if (error) {
@@ -102,7 +102,7 @@ export const validateUserId = (req: Request, res: Response, next: NextFunction) 
   console.log('validateUserId params:', req.params);
   const schema = Joi.object({
     userId: Joi.string().required(),
-  });
+  }).unknown(true);
 
   const { error } = schema.validate(req.params);
   if (error) {
