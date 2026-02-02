@@ -14,6 +14,12 @@
       "key": "userId",
       "value": "550e8400-e29b-41d4-a716-446655440000",
       "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "type": "string",
+      "description": "Set this after creating a product"
     }
   ],
   "item": [
@@ -51,7 +57,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"product_id\": 1,\n  \"quantity\": 2\n}"
+          "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"product_id\": \"{{productId}}\",\n  \"quantity\": 2\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/reserve",
@@ -73,7 +79,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"product_id\": 1,\n  \"quantity\": 2,\n  \"total_amount\": 1999.98\n}"
+          "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"product_id\": \"{{productId}}\",\n  \"quantity\": 2,\n  \"total_amount\": 1999.98\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/checkout",
@@ -89,9 +95,9 @@
         "method": "DELETE",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/reserve/{{userId}}/1",
+          "raw": "{{baseUrl}}/api/reserve/{{userId}}/{{productId}}",
           "host": ["{{baseUrl}}"],
-          "path": ["api", "reserve", "{{userId}}", "1"]
+          "path": ["api", "reserve", "{{userId}}", "{{productId}}"]
         }
       },
       "response": []
@@ -102,9 +108,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/products/1/status",
+          "raw": "{{baseUrl}}/api/products/{{productId}}/status",
           "host": ["{{baseUrl}}"],
-          "path": ["api", "products", "1", "status"]
+          "path": ["api", "products", "{{productId}}", "status"]
         }
       },
       "response": []
