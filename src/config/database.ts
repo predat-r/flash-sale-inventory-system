@@ -3,7 +3,11 @@ import { config } from './index';
 
 export const pool = new Pool({
   connectionString: config.database.url,
-  ssl: config.database.url.includes('sslmode=require') ? { rejectUnauthorized: false } : false,
+  ssl: config.database.url.includes('sslmode=verify-full') 
+    ? { rejectUnauthorized: false } 
+    : config.database.url.includes('sslmode=') 
+      ? { rejectUnauthorized: false } 
+      : false,
 });
 
 export const initializeDatabase = async (): Promise<void> => {
