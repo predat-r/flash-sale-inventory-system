@@ -5,11 +5,12 @@ class RedisClient {
   private client: Redis;
 
   constructor() {
-    this.client = new Redis(config.redis.url, {
-      headers: {
-        Authorization: `Bearer ${config.redis.token}`,
-      },
-      retryDelayOnFailover: 100,
+    const url = new URL(config.redis.url);
+    this.client = new Redis({
+      host: url.hostname,
+      port: parseInt(url.port) || 6380,
+      password: config.redis.token,
+      tls: {},
       maxRetriesPerRequest: 3,
     });
 

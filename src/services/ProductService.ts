@@ -12,7 +12,7 @@ export class ProductService {
     return `stock:${productId}`;
   }
 
-  static async createProduct(name: string, description?: string, totalStock: number) {
+  static async createProduct(name: string, totalStock: number, description?: string) {
     const product = await ProductModel.create({
       name,
       description,
@@ -65,10 +65,10 @@ export class ProductService {
       reservationKey,
       quantity.toString(),
       (10 * 60).toString()
-    );
+    ) as number[];
 
     if (result[0] === 0) {
-      throw new Error(result[1]);
+      throw new Error(result[1].toString());
     }
 
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -121,10 +121,10 @@ export class ProductService {
       reservationKey,
       stockKey,
       quantity.toString()
-    );
+    ) as number[];
 
     if (result[0] === 0) {
-      throw new Error(result[1]);
+      throw new Error(result[1].toString());
     }
 
     const order = await OrderModel.create({

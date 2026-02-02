@@ -7,7 +7,7 @@ export class ProductController {
     try {
       const { name, description, total_stock }: CreateProductRequest = req.body;
       
-      const product = await ProductService.createProduct(name, description, total_stock);
+      const product = await ProductService.createProduct(name, total_stock || 0, description);
       
       const response: ApiResponse = {
         success: true,
@@ -82,7 +82,7 @@ export class ProductController {
     try {
       const { userId, productId } = req.params;
       
-      await ProductService.cancelReservation(userId, parseInt(productId, 10));
+      await ProductService.cancelReservation(userId as string, parseInt(productId as string, 10));
       
       const response: ApiResponse = {
         success: true,
@@ -103,7 +103,7 @@ export class ProductController {
     try {
       const { productId } = req.params;
       
-      const status = await ProductService.getProductStatus(parseInt(productId, 10));
+      const status = await ProductService.getProductStatus(parseInt(productId as string, 10));
       
       const response: ApiResponse = {
         success: true,
@@ -124,7 +124,7 @@ export class ProductController {
     try {
       const { userId } = req.params;
       
-      const reservations = await ProductService.getUserReservations(userId);
+      const reservations = await ProductService.getUserReservations(userId as string);
       
       const response: ApiResponse = {
         success: true,
